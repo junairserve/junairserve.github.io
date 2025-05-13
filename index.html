@@ -41,11 +41,11 @@
          #comparisonTable td:first-child {
              text-align: center;
          }
-         #comparisonTable td:nth-child(2) { /* 材料費平均 */
+         #comparisonTable td:nth-child(2) { /* 材料費 */
              font-weight: bold;
              color: #0056b3;
          }
-          #comparisonTable td:nth-child(3) { /* 当該利用時の発生コスト */
+          #comparisonTable td:nth-child(3) { /* クリーニングコスト */
              font-weight: bold;
              color: #dc3545; /* 赤 */
          }
@@ -125,8 +125,8 @@
                     <tr>
                         <th>利用回数 (回)</th> 
                         <th>材料費 (円)</th> 
-                        <th>再利用時の発生コスト (円)</th> 
-                        <th>材料+ 再利用時発生コスト合計 (円)</th> 
+                        <th>クリーニングコスト (円)</th> 
+                        <th>材料+ クリーニングコスト合計 (円)</th> 
                         <th>現状との比較 (差額 円)</th>
                     </tr>
                 </thead>
@@ -134,7 +134,7 @@
                     <!-- テーブル内容はJSで動的に生成 -->
                 </tbody>
             </table>
-            <small>※ 「材料+ 再利用時発生コスト合計」は2回目以降の値のみを表示しています。1回目は材料費と発生コストが同じ値になるため表示していません。</small> 
+            <small>※ 「材料+ クリーニングコスト合計」は2回目以降の値のみを表示しています。1回目は材料費と発生コストが同じ値になるため表示していません。</small> 
             <button id="downloadCsvBtn" style="display: none;">計算結果をCSVでダウンロード</button>
 
             <div id="chartContainer" style="display: none;">
@@ -178,7 +178,7 @@
             simulationData = []; // データをクリア
 
             // CSVヘッダー行
-            simulationData.push(['利用回数', '材料費(円)', '再利用時の発生コスト(円)', '材料+再利用時発生コスト合計(円)', '現状との比較(差額 円)']);
+            simulationData.push(['利用回数', '材料費(円)', 'クリーニングコスト(円)', '材料+クリーニングコスト合計(円)', '現状との比較(差額 円)']);
 
             for (let i = 1; i <= 8; i++) {
                 // 材料費のみの平均 (購入費 / 回数)
@@ -192,7 +192,7 @@
                     costForThisUse = totalCleaningCostPerClean; // 2回目以降はクリーニング費用
                 }
 
-                // 材料費平均 + 発生コスト合計を計算（1回目の場合は計算しない）
+                // 材料費平均 + クリーニングコスト合計を計算（1回目の場合は計算しない）
                 let sumOfMaterialAvgAndThisCost = null;
                 if (i > 1) {
                     sumOfMaterialAvgAndThisCost = averageMaterialCostTable + costForThisUse;
@@ -204,7 +204,7 @@
                     // 1回目の場合は現在のコスト - 材料費（=発生コスト）
                     differenceForThisUse = currentCost - costForThisUse;
                 } else {
-                    // 2回目以降は現在のコスト - (材料費平均 + 発生コスト合計)
+                    // 2回目以降は現在のコスト - (材料費 + クリーニングコスト合計)
                     differenceForThisUse = currentCost - sumOfMaterialAvgAndThisCost;
                 }
 
@@ -273,8 +273,8 @@
 
             // グラフ用のデータ準備 (ヘッダー行を除く)
             const chartLabels = simulationData.slice(1).map(row => row[0]); // 利用回数
-            const materialCostsAvg = simulationData.slice(1).map(row => parseFloat(row[1])); // 材料費平均
-            const costForEachUseData = simulationData.slice(1).map(row => parseFloat(row[2])); // 当該利用時の発生コスト
+            const materialCostsAvg = simulationData.slice(1).map(row => parseFloat(row[1])); // 材料費
+            const costForEachUseData = simulationData.slice(1).map(row => parseFloat(row[2])); // クリーニングコスト
             
             // 合計値（1回目は除外）
             const sumOfBothCosts = simulationData.slice(1).map((row, index) => {
@@ -320,7 +320,7 @@
                             tension: 0.1
                         },
                         {
-                            label: '材料+再利用時発生コスト合計',
+                            label: '材料+クリーニングコスト合計',
                             data: sumOfBothCosts,
                             borderColor: '#663399', // 紫
                             backgroundColor: '#663399',
@@ -367,7 +367,7 @@
                                         label += ': ';
                                     }
                                     label += context.raw.toFixed(2) + ' 円';
-                                    // 当該利用時の発生コストの場合のみ差額を表示
+                                    // クリーニング発生コストの場合のみ差額を表示
                                     if (context.dataset.label === '一体型 再利用時の発生コスト') {
                                         const diff = currentCost - context.raw;
                                         if (diff > 0) {
