@@ -10,8 +10,8 @@ body { font-family: Arial, sans-serif; }
 .input-group { margin-bottom: 10px; }
 .input-group label { display: block; margin-bottom: 4px; }
 #board { width: 800px; height: 450px; border: 2px solid #333; margin: 20px auto; position: relative; background: white; }
-#names, #tourName { position: absolute; white-space: pre-wrap; text-align: center; }
-#logo { position: absolute; }
+#names, #tourName { position: absolute; white-space: pre-wrap; text-align: center; cursor: move; }
+#logo { position: absolute; cursor: move; }
 </style>
 </head>
 <body>
@@ -86,6 +86,42 @@ function updateBoard() {
 }
 
 document.getElementById('updateBtn').addEventListener('click', updateBoard);
+
+let dragInfo = null;
+
+function makeDraggable(el, topInputId, leftInputId) {
+  el.addEventListener('mousedown', function(e) {
+    dragInfo = { el: el, offsetX: e.offsetX, offsetY: e.offsetY,
+                 topInput: document.getElementById(topInputId),
+                 leftInput: document.getElementById(leftInputId) };
+    document.addEventListener('mousemove', dragMove);
+    document.addEventListener('mouseup', stopDrag);
+    e.preventDefault();
+  });
+}
+
+function dragMove(e) {
+  if (!dragInfo) return;
+  const boardRect = document.getElementById('board').getBoundingClientRect();
+  const x = e.clientX - boardRect.left - dragInfo.offsetX;
+  const y = e.clientY - boardRect.top - dragInfo.offsetY;
+  dragInfo.el.style.left = x + 'px';
+  dragInfo.el.style.top = y + 'px';
+}
+
+function stopDrag() {
+  if (!dragInfo) return;
+  dragInfo.leftInput.value = parseInt(dragInfo.el.style.left);
+  dragInfo.topInput.value = parseInt(dragInfo.el.style.top);
+  document.removeEventListener('mousemove', dragMove);
+  document.removeEventListener('mouseup', stopDrag);
+  dragInfo = null;
+}
+
+makeDraggable(document.getElementById('names'), 'namesTop', 'namesLeft');
+makeDraggable(document.getElementById('tourName'), 'tourTop', 'tourLeft');
+makeDraggable(document.getElementById('logo'), 'logoTop', 'logoLeft');
+updateBoard();
 </script>
 </body>
 </html>
