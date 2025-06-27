@@ -9,42 +9,45 @@ body { font-family: Arial, sans-serif; }
 #controls { max-width: 600px; margin: 10px auto; }
 .input-group { margin-bottom: 10px; }
 .input-group label { display: block; margin-bottom: 4px; }
-#board { width: 800px; height: 450px; border: 2px solid #333; margin: 20px auto; position: relative; background: white; }
+#board { width: 1123px; height: 794px; border: 2px solid #333; margin: 20px auto; position: relative; background: white; }
 #names, #tourName { position: absolute; white-space: pre-wrap; text-align: center; cursor: move; }
 #logo { position: absolute; cursor: move; }
+@media print {
+  #board { width: 297mm; height: 210mm; }
+}
 </style>
 </head>
 <body>
 <div id="controls">
   <div class="input-group">
     <label for="namesInput">名前 (改行区切り):</label>
-    <textarea id="namesInput" rows="3" style="width:100%;"></textarea>
+    <textarea oninput="updateBoard()" id="namesInput" rows="3" style="width:100%;"></textarea>
   </div>
   <div class="input-group">
     <label>名前位置 (px)</label>
-    上: <input type="number" id="namesTop" value="50" style="width:80px;"> 
-    左: <input type="number" id="namesLeft" value="50" style="width:80px;">
-    サイズ: <input type="number" id="namesSize" value="48" style="width:80px;">px
+    上: <input type="number" id="namesTop" oninput="updateBoard()" value="50" style="width:80px;"> 
+    左: <input type="number" id="namesLeft" oninput="updateBoard()" value="50" style="width:80px;">
+    サイズ: <input type="number" id="namesSize" oninput="updateBoard()" value="48" style="width:80px;">px
   </div>
   <div class="input-group">
     <label for="tourInput">ツアー名:</label>
-    <input type="text" id="tourInput" style="width:100%;">
+    <input oninput="updateBoard()" type="text" id="tourInput" style="width:100%;">
   </div>
   <div class="input-group">
     <label>ツアー名位置 (px)</label>
-    上: <input type="number" id="tourTop" value="150" style="width:80px;">
-    左: <input type="number" id="tourLeft" value="50" style="width:80px;">
-    サイズ: <input type="number" id="tourSize" value="32" style="width:80px;">px
+    上: <input type="number" id="tourTop" oninput="updateBoard()" value="150" style="width:80px;">
+    左: <input type="number" id="tourLeft" oninput="updateBoard()" value="50" style="width:80px;">
+    サイズ: <input type="number" id="tourSize" oninput="updateBoard()" value="32" style="width:80px;">px
   </div>
   <div class="input-group">
     <label for="logoInput">ロゴ画像:</label>
-    <input type="file" id="logoInput" accept="image/*">
+    <input onchange="updateBoard()" type="file" id="logoInput" accept="image/*">
   </div>
   <div class="input-group">
     <label>ロゴ位置/サイズ (px)</label>
-    上: <input type="number" id="logoTop" value="10" style="width:80px;">
-    左: <input type="number" id="logoLeft" value="600" style="width:80px;">
-    幅: <input type="number" id="logoWidth" value="150" style="width:80px;">
+    上: <input type="number" id="logoTop" oninput="updateBoard()" value="10" style="width:80px;">
+    左: <input type="number" id="logoLeft" oninput="updateBoard()" value="600" style="width:80px;">
+    幅: <input type="number" id="logoWidth" oninput="updateBoard()" value="150" style="width:80px;">
   </div>
   <button id="updateBtn">ボード更新</button>
 </div>
