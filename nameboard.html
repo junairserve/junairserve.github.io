@@ -14,6 +14,7 @@ body { font-family: Arial, sans-serif; }
 #logo { position: absolute; cursor: move; }
 @media print {
   #board { width: 297mm; height: 210mm; }
+  #controls { display: none; }
 }
 </style>
 </head>
@@ -50,6 +51,7 @@ body { font-family: Arial, sans-serif; }
     幅: <input type="number" id="logoWidth" oninput="updateBoard()" value="150" style="width:80px;">
   </div>
   <button id="updateBtn">ボード更新</button>
+  <button id="printBtn">印刷</button>
 </div>
 <div id="board">
   <div id="names"></div>
@@ -89,6 +91,7 @@ function updateBoard() {
 }
 
 document.getElementById('updateBtn').addEventListener('click', updateBoard);
+document.getElementById('printBtn').addEventListener('click', () => window.print());
 
 let dragInfo = null;
 
