@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ネームボード作成ツール</title>
+<style>
+body { font-family: Arial, sans-serif; }
+#controls { max-width: 600px; margin: 10px auto; }
+.input-group { margin-bottom: 10px; }
+.input-group label { display: block; margin-bottom: 4px; }
+#board { width: 1123px; height: 794px; border: 2px solid #333; margin: 20px auto; position: relative; background: white; }
+#names, #tourName { position: absolute; white-space: pre-wrap; text-align: center; cursor: move; }
+#logo { position: absolute; cursor: move; }
+@media print {
+  #board { width: 297mm; height: 210mm; }
+  #controls { display: none; }
+}
+</style>
+</head>
+<body>
+<div id="controls">
+  <div class="input-group">
+    <label for="namesInput">名前 (改行区切り):</label>
+    <textarea oninput="updateBoard()" id="namesInput" rows="3" style="width:100%;"></textarea>
+  </div>
+  <div class="input-group">
+    <label>名前位置 (px)</label>
+    上: <input type="number" id="namesTop" oninput="updateBoard()" value="50" style="width:80px;"> 
+    左: <input type="number" id="namesLeft" oninput="updateBoard()" value="50" style="width:80px;">
+    サイズ: <input type="number" id="namesSize" oninput="updateBoard()" value="48" style="width:80px;">px
+  </div>
+  <div class="input-group">
+    <label for="tourInput">ツアー名:</label>
+    <input oninput="updateBoard()" type="text" id="tourInput" style="width:100%;">
+  </div>
+  <div class="input-group">
+    <label>ツアー名位置 (px)</label>
+    上: <input type="number" id="tourTop" oninput="updateBoard()" value="150" style="width:80px;">
+    左: <input type="number" id="tourLeft" oninput="updateBoard()" value="50" style="width:80px;">
+    サイズ: <input type="number" id="tourSize" oninput="updateBoard()" value="32" style="width:80px;">px
+  </div>
+  <div class="input-group">
+    <label for="logoInput">ロゴ画像:</label>
+    <input onchange="updateBoard()" type="file" id="logoInput" accept="image/*">
+  </div>
+  <div class="input-group">
+    <label>ロゴ位置/サイズ (px)</label>
+    上: <input type="number" id="logoTop" oninput="updateBoard()" value="10" style="width:80px;">
+    左: <input type="number" id="logoLeft" oninput="updateBoard()" value="600" style="width:80px;">
+    幅: <input type="number" id="logoWidth" oninput="updateBoard()" value="150" style="width:80px;">
+  </div>
+  <button id="updateBtn">ボード更新</button>
+  <button id="printBtn">印刷</button>
+</div>
+<div id="board">
+  <div id="names"></div>
+  <div id="tourName"></div>
+  <img id="logo" style="display:none;" />
+</div>
+<script>
+function updateBoard() {
+  const names = document.getElementById('namesInput').value.trim();
+  const namesEl = document.getElementById('names');
+  namesEl.innerHTML = names.replace(/\n/g, '<br>');
+  namesEl.style.top = document.getElementById('namesTop').value + 'px';
+  namesEl.style.left = document.getElementById('namesLeft').value + 'px';
+  namesEl.style.fontSize = document.getElementById('namesSize').value + 'px';
+
+  const tour = document.getElementById('tourInput').value.trim();
+  const tourEl = document.getElementById('tourName');
+  tourEl.textContent = tour;
+  tourEl.style.top = document.getElementById('tourTop').value + 'px';
+  tourEl.style.left = document.getElementById('tourLeft').value + 'px';
+  tourEl.style.fontSize = document.getElementById('tourSize').value + 'px';
+  tourEl.style.display = tour ? 'block' : 'none';
+
+  const logoFile = document.getElementById('logoInput').files[0];
+  const logoEl = document.getElementById('logo');
+  if (logoFile) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      logoEl.src = e.target.result;
+      logoEl.style.display = 'block';
+    };
+    reader.readAsDataURL(logoFile);
+  }
+  logoEl.style.top = document.getElementById('logoTop').value + 'px';
+  logoEl.style.left = document.getElementById('logoLeft').value + 'px';
+  logoEl.style.width = document.getElementById('logoWidth').value + 'px';
+}
+
+document.getElementById('updateBtn').addEventListener('click', updateBoard);
+document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+let dragInfo = null;
+
+function makeDraggable(el, topInputId, leftInputId) {
+  el.addEventListener('mousedown', function(e) {
+    dragInfo = { el: el, offsetX: e.offsetX, offsetY: e.offsetY,
+                 topInput: document.getElementById(topInputId),
+                 leftInput: document.getElementById(leftInputId) };
+    document.addEventListener('mousemove', dragMove);
+    document.addEventListener('mouseup', stopDrag);
+    e.preventDefault();
+  });
+}
+
+function dragMove(e) {
+  if (!dragInfo) return;
+  const boardRect = document.getElementById('board').getBoundingClientRect();
+  const x = e.clientX - boardRect.left - dragInfo.offsetX;
+  const y = e.clientY - boardRect.top - dragInfo.offsetY;
+  dragInfo.el.style.left = x + 'px';
+  dragInfo.el.style.top = y + 'px';
+}
+
+function stopDrag() {
+  if (!dragInfo) return;
+  dragInfo.leftInput.value = parseInt(dragInfo.el.style.left);
+  dragInfo.topInput.value = parseInt(dragInfo.el.style.top);
+  document.removeEventListener('mousemove', dragMove);
+  document.removeEventListener('mouseup', stopDrag);
+  dragInfo = null;
+}
+
+makeDraggable(document.getElementById('names'), 'namesTop', 'namesLeft');
+makeDraggable(document.getElementById('tourName'), 'tourTop', 'tourLeft');
+makeDraggable(document.getElementById('logo'), 'logoTop', 'logoLeft');
+updateBoard();
+</script>
+</body>
+</html>
