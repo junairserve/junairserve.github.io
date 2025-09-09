@@ -1,412 +1,122 @@
-       <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>イヤホンコスト シミュレーター (8回比較版)</title>
-    <style>
-        body { font-family: 'Arial', sans-serif; margin: 20px; line-height: 1.6; }
-        h2, h3 { color: #333; }
-        .container { max-width: 900px; margin: auto; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .input-group input[type="number"] { width: calc(100% - 150px); padding: 8px; border: 1px solid #ccc; border-radius: 4px; float: right; margin-left: 10px;}
-        .input-group::after { content: ""; display: table; clear: both; }
-        button { display: block; width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; transition: background-color 0.3s ease; margin-top: 10px; }
-        button:hover { background-color: #0056b3; }
-        .results { margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; }
-        .results p { margin-bottom: 10px; }
-        .results strong { display: inline-block; width: 280px; }
-        .highlight { color: #28a745; font-weight: bold; }
-        .warning { color: #dc3545; font-weight: bold; }
-
-        #comparisonTable {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        #comparisonTable th, #comparisonTable td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: right;
-        }
-        #comparisonTable th {
-            background-color: #007bff;
-            color: white;
-            text-align: center;
-        }
-         #comparisonTable tbody tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-         #comparisonTable td:first-child {
-             text-align: center;
-         }
-         #comparisonTable td:nth-child(2) { /* 材料費 */
-             font-weight: bold;
-             color: #0056b3;
-         }
-          #comparisonTable td:nth-child(3) { /* クリーニングコスト */
-             font-weight: bold;
-             color: #dc3545; /* 赤 */
-         }
-         #comparisonTable td:nth-child(4) { /* 新しい合計列 */
-             font-weight: bold;
-             color: #663399; /* 紫系 */
-         }
-
-
-         #chartContainer {
-             margin-top: 20px;
-             border-top: 1px solid #eee;
-             padding-top: 20px;
-         }
-
-         #downloadCsvBtn {
-             display: block;
-             width: auto;
-             margin: 15px auto 0 auto;
-             padding: 8px 15px;
-             background-color: #28a745;
-             color: white;
-             border: none;
-             border-radius: 4px;
-             font-size: 14px;
-             cursor: pointer;
-             transition: background-color 0.3s ease;
-         }
-         #downloadCsvBtn:hover {
-             background-color: #218838;
-         }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>スリーワークス株式会社 | 不動産売買・賃貸管理</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    header {
+      background: #0066cc;
+      color: #fff;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    nav {
+      background: #004999;
+      text-align: center;
+    }
+    nav a {
+      display: inline-block;
+      padding: 12px 20px;
+      color: #fff;
+      text-decoration: none;
+    }
+    nav a:hover {
+      background: #003366;
+    }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    section {
+      margin-bottom: 40px;
+    }
+    table.company-info {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table.company-info th,
+    table.company-info td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    table.company-info th {
+      width: 30%;
+      background: #f0f0f0;
+    }
+    footer {
+      background: #f0f0f0;
+      text-align: center;
+      padding: 20px;
+      font-size: 0.9rem;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h2>ガイドレシーバー イヤホンコスト シミュレーター</h2>
-        <p>一体型イヤホン・ストラップの<strong>利用回数ごとの発生コスト</strong>をシミュレーションします。</p>
+  <header>
+    <h1>スリーワークス株式会社</h1>
+    <p>不動産売買・賃貸管理のプロフェッショナル</p>
+  </header>
 
-        <div class="input-section">
-            <h3>◆ 入力項目</h3>
-            <div class="input-group">
-                <label for="currentCost">現在の使い捨てコスト (円/回):</label>
-                <input type="number" id="currentCost" value="100" step="0.01">
-            </div>
-            <div class="input-group">
-                <label for="integratedCost">一体型購入費用 (円/個):</label>
-                <input type="number" id="integratedCost" value="122" min="0" step="0.01">
-            </div>
-             <div class="input-group">
-                <label for="reuses">想定総利用回数 (メイン結果なし):</label>
-                <input type="number" id="reuses" value="10" min="5" step="1">
-                <small>※この値は計算結果表示には使用しません</small>
-            </div>
-            <div class="input-group">
-                <label for="cleaningTime">1回のクリーニング時間 (分/回):</label>
-                <input type="number" id="cleaningTime" value="6" min="0" step="0.1">
-                <small>※1個あたりにかかる時間</small>
-            </div>
-            <div class="input-group">
-                <label for="hourlyWage">クリーニング担当者の時給 (円/時間):</label>
-                <input type="number" id="hourlyWage" value="1200" min="0">
-            </div>
-            <div class="input-group">
-                <label for="consumablesCost">1回あたり消耗品費 (円/回):</label>
-                <input type="number" id="consumablesCost" value="15" min="0" step="0.01">
-                 <small>※1個あたりにかかる費用</small>
-            </div>
+  <nav>
+    <a href="#services">サービス</a>
+    <a href="#company">会社情報</a>
+    <a href="#contact">お問い合わせ</a>
+  </nav>
 
-            <button onclick="calculateCost()">計算実行</button>
-        </div>
+  <main>
+    <section id="services">
+      <h2>サービス</h2>
+      <p>スリーワークス株式会社は、埼玉県川口市を拠点に不動産売買および賃貸管理を行っています。地域密着のきめ細やかな対応で、お客さまの大切な資産をサポートします。</p>
+    </section>
 
-        <div class="results" id="results">
-            <h3>◆ 1～8回利用時の発生コスト比較</h3> 
-            <table id="comparisonTable">
-                <thead>
-                    <tr>
-                        <th>利用回数 (回)</th> 
-                        <th>材料費 (円)</th> 
-                        <th>クリーニングコスト (円)</th> 
-                        <th>材料+ クリーニングコスト合計 (円)</th> 
-                        <th>現状との比較 (差額 円)</th>
-                    </tr>
-                </thead>
-                <tbody id="comparisonTableBody">
-                    <!-- テーブル内容はJSで動的に生成 -->
-                </tbody>
-            </table>
-            <small>※ 「材料+ クリーニングコスト合計」は2回目以降の値のみを表示しています。1回目は材料費と発生コストが同じ値になるため表示していません。</small> 
-            <button id="downloadCsvBtn" style="display: none;">計算結果をCSVでダウンロード</button>
+    <section id="company">
+      <h2>会社情報</h2>
+      <table class="company-info">
+        <tr>
+          <th>商号</th>
+          <td>スリーワークス株式会社</td>
+        </tr>
+        <tr>
+          <th>住所</th>
+          <td>〒334-0052 埼玉県川口市安行出羽5-5-3</td>
+        </tr>
+        <tr>
+          <th>TEL</th>
+          <td>048-271-9750</td>
+        </tr>
+        <tr>
+          <th>交通</th>
+          <td>埼玉高速鉄道「戸塚安行」徒歩18分</td>
+        </tr>
+        <tr>
+          <th>免許番号</th>
+          <td>埼玉県知事 (2) 第022787号</td>
+        </tr>
+        <tr>
+          <th>加盟団体</th>
+          <td>（公社）全国宅地建物取引業協会連合会</td>
+        </tr>
+      </table>
+    </section>
 
-            <div id="chartContainer" style="display: none;">
-                <h3>◆ コスト比較グラフ</h3>
-                <canvas id="costChart"></canvas>
-            </div>
-        </div>
-    </div>
+    <section id="contact">
+      <h2>お問い合わせ</h2>
+      <p>物件の売買や管理に関するご相談は、電話でお気軽にお問い合わせください。</p>
+      <p>TEL: <a href="tel:0482719750">048-271-9750</a></p>
+    </section>
+  </main>
 
-    <script>
-        let chartInstance = null;
-        let simulationData = []; // CSV/グラフ用のデータを保持する配列
-
-        function calculateCost() {
-            // 入力値を取得
-            const currentCost = parseFloat(document.getElementById('currentCost').value);
-            const integratedCost = parseFloat(document.getElementById('integratedCost').value);
-            const cleaningTimeMinutes = parseFloat(document.getElementById('cleaningTime').value) || 0;
-            const hourlyWage = parseFloat(document.getElementById('hourlyWage').value) || 0;
-            const consumablesCostPerUnit = parseFloat(document.getElementById('consumablesCost').value) || 0;
-
-            // 入力値の検証
-            if (isNaN(currentCost) || currentCost < 0) { 
-                alert("「現在の使い捨てコスト」に0以上の数値を入力してください。"); 
-                return; 
-            }
-            if (isNaN(integratedCost) || integratedCost < 0) { 
-                alert("「一体型購入費用」に0以上の数値を入力してください。"); 
-                return; 
-            }
-
-            // --- 共通計算（利用回数によらない単価） ---
-            // 1回クリーニングあたりの人件費を計算
-            const cleaningLaborCostPerClean = (cleaningTimeMinutes / 60) * hourlyWage;
-            // 1回クリーニングあたりの総コスト（人件費＋消耗品費）
-            const totalCleaningCostPerClean = cleaningLaborCostPerClean + consumablesCostPerUnit;
-
-            // --- 比較表の計算（1回～8回利用時）とデータ保持 ---
-            const tableBody = document.getElementById('comparisonTableBody');
-            tableBody.innerHTML = ''; // テーブル内容をクリア
-            simulationData = []; // データをクリア
-
-            // CSVヘッダー行
-            simulationData.push(['利用回数', '材料費(円)', 'クリーニングコスト(円)', '材料+クリーニングコスト合計(円)', '現状との比較(差額 円)']);
-
-            for (let i = 1; i <= 8; i++) {
-                // 材料費のみの平均 (購入費 / 回数)
-                const averageMaterialCostTable = (i > 0) ? (integratedCost / i) : integratedCost;
-
-                // 当該利用時に発生するコスト
-                let costForThisUse;
-                if (i === 1) {
-                    costForThisUse = integratedCost; // 1回目の利用コストは購入費用
-                } else {
-                    costForThisUse = totalCleaningCostPerClean; // 2回目以降はクリーニング費用
-                }
-
-                // 材料費平均 + クリーニングコスト合計を計算（1回目の場合は計算しない）
-                let sumOfMaterialAvgAndThisCost = null;
-                if (i > 1) {
-                    sumOfMaterialAvgAndThisCost = averageMaterialCostTable + costForThisUse;
-                }
-
-                // 現在のコストとの差額を計算
-                let differenceForThisUse;
-                if (i === 1) {
-                    // 1回目の場合は現在のコスト - 材料費（=発生コスト）
-                    differenceForThisUse = currentCost - costForThisUse;
-                } else {
-                    // 2回目以降は現在のコスト - (材料費 + クリーニングコスト合計)
-                    differenceForThisUse = currentCost - sumOfMaterialAvgAndThisCost;
-                }
-
-                // テーブルに行を追加
-                const row = tableBody.insertRow();
-                const cellReuse = row.insertCell(0);
-                const cellMaterialAvg = row.insertCell(1);
-                const cellCostThisUse = row.insertCell(2);
-                const cellSum = row.insertCell(3);
-                const cellDifference = row.insertCell(4);
-
-                cellReuse.textContent = i;
-                cellMaterialAvg.textContent = averageMaterialCostTable.toFixed(2);
-                cellCostThisUse.textContent = costForThisUse.toFixed(2);
-                cellSum.textContent = i === 1 ? "-" : sumOfMaterialAvgAndThisCost.toFixed(2);
-
-                cellDifference.textContent = differenceForThisUse.toFixed(2);
-                if (differenceForThisUse > 0) {
-                    cellDifference.style.color = '#28a745'; // green
-                    cellDifference.textContent += ' お得';
-                } else if (differenceForThisUse < 0) {
-                    cellDifference.style.color = '#dc3545'; // red
-                    cellDifference.textContent += ' 割高';
-                }
-                cellDifference.style.fontWeight = 'bold';
-
-                // CSV/グラフ用にデータを保持
-                simulationData.push([
-                    i,
-                    averageMaterialCostTable.toFixed(2),
-                    costForThisUse.toFixed(2),
-                    i === 1 ? "" : sumOfMaterialAvgAndThisCost.toFixed(2),
-                    differenceForThisUse.toFixed(2)
-                ]);
-            }
-
-            // 結果表示エリアとダウンロードボタン、グラフコンテナを表示
-            document.getElementById('results').style.display = 'block';
-            document.getElementById('downloadCsvBtn').style.display = 'block';
-            document.getElementById('chartContainer').style.display = 'block';
-
-            // グラフを更新して表示
-            renderChart(currentCost);
-        }
-
-        // CSVダウンロード機能
-        document.getElementById('downloadCsvBtn').addEventListener('click', function() {
-            let csvContent = simulationData.map(row => row.join(',')).join('\n');
-            const BOM = "\uFEFF";
-            csvContent = BOM + csvContent;
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.setAttribute('download', 'イヤホンコストシミュレーション結果_回ごと.csv');
-            link.click();
-            URL.revokeObjectURL(link.href);
-        });
-
-        // グラフ描画機能
-        function renderChart(currentCost) {
-            const ctx = document.getElementById('costChart').getContext('2d');
-
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
-
-            // グラフ用のデータ準備 (ヘッダー行を除く)
-            const chartLabels = simulationData.slice(1).map(row => row[0]); // 利用回数
-            const materialCostsAvg = simulationData.slice(1).map(row => parseFloat(row[1])); // 材料費
-            const costForEachUseData = simulationData.slice(1).map(row => parseFloat(row[2])); // クリーニングコスト
-            
-            // 合計値（1回目は除外）
-            const sumOfBothCosts = simulationData.slice(1).map((row, index) => {
-                if (index === 0) return null; // 1回目は除外
-                return parseFloat(row[3]);
-            });
-            
-            const currentCostLine = new Array(chartLabels.length).fill(currentCost); // 現在のコスト (横線)
-
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: chartLabels,
-                    datasets: [
-                        {
-                            label: '現在の使い捨てコスト',
-                            data: currentCostLine,
-                            borderColor: '#ffc107', // 黄色
-                            borderDash: [5, 5], // 点線
-                            fill: false,
-                            pointRadius: 5,
-                            pointBackgroundColor: '#ffc107',
-                            tension: 0
-                        },
-                        {
-                            label: '一体型 材料費',
-                            data: materialCostsAvg,
-                            borderColor: '#007bff', // 青
-                            backgroundColor: '#007bff',
-                            fill: false,
-                            pointRadius: 5,
-                            pointBackgroundColor: '#007bff',
-                            tension: 0.1
-                        },
-                        {
-                            label: '一体型 再利用時の発生コスト',
-                            data: costForEachUseData,
-                            borderColor: '#dc3545', // 赤
-                            backgroundColor: '#dc3545',
-                            fill: false,
-                            pointRadius: 5,
-                            pointBackgroundColor: '#dc3545',
-                            tension: 0.1
-                        },
-                        {
-                            label: '材料+クリーニングコスト合計',
-                            data: sumOfBothCosts,
-                            borderColor: '#663399', // 紫
-                            backgroundColor: '#663399',
-                            fill: false,
-                            pointRadius: 5,
-                            pointBackgroundColor: '#663399',
-                            tension: 0.1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: '利用回数 (回)'
-                            },
-                            ticks: {
-                                autoSkip: false,
-                                callback: function(value, index, values) {
-                                    return chartLabels[index];
-                                }
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: '費用 (円)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: '一体型イヤホン・ストラップ コスト比較'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    label += context.raw.toFixed(2) + ' 円';
-                                    // クリーニング発生コストの場合のみ差額を表示
-                                    if (context.dataset.label === '一体型 再利用時の発生コスト') {
-                                        const diff = currentCost - context.raw;
-                                        if (diff > 0) {
-                                            label += ` (現状使い捨てより ${diff.toFixed(2)} 円お得)`;
-                                        } else if (diff < 0) {
-                                            label += ` (現状使い捨てより ${Math.abs(diff).toFixed(2)} 円割高)`;
-                                        } else {
-                                            label += ` (現状使い捨てと同等)`;
-                                        }
-                                    }
-                                    // 合計値の場合も差額を表示
-                                    if (context.dataset.label === '材料+再利用時発生コスト合計') {
-                                        const diff = currentCost - context.raw;
-                                        if (diff > 0) {
-                                            label += ` (現状使い捨てより ${diff.toFixed(2)} 円お得)`;
-                                        } else if (diff < 0) {
-                                            label += ` (現状使い捨てより ${Math.abs(diff).toFixed(2)} 円割高)`;
-                                        } else {
-                                            label += ` (現状使い捨てと同等)`;
-                                        }
-                                    }
-                                    return label;
-                                }
-                            }
-                        },
-                        legend: {
-                            position: 'bottom',
-                        }
-                    }
-                }
-            });
-            document.getElementById('chartContainer').style.height = '400px';
-            document.getElementById('chartContainer').style.position = 'relative';
-        }
-
-        // 初期状態では結果、ボタン、グラフを非表示
-        document.getElementById('results').style.display = 'none';
-        document.getElementById('downloadCsvBtn').style.display = 'none';
-        document.getElementById('chartContainer').style.display = 'none';
-    </script>
+  <footer>
+    &copy; 2024 スリーワークス株式会社
+  </footer>
 </body>
 </html>
