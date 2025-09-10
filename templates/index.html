@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>登山管理ダッシュボード</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        #map { height: 400px; width: 100%; margin-top: 1em; }
+    </style>
+</head>
+<body>
+    <h1>登山管理ダッシュボード</h1>
+    <div>
+        <h3>現在の状態</h3>
+        <p id="status">読み込み中...</p>
+    </div>
+    <canvas id="dailyChart" width="400" height="200"></canvas>
+    <canvas id="monthlyChart" width="400" height="200"></canvas>
+    <canvas id="yearlyChart" width="400" height="200"></canvas>
+    <div id="map"></div>
+    <button onclick="downloadCsv()">集計CSVダウンロード</button>
+
+<!-- Google Maps API key is injected from the Flask app -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key }}"></script>
+<script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>
