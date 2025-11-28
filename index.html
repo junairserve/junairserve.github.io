@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>ガイドレシーバー実験ログ</title>
+  <title>ガイドレシーバー通信実験ログ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Leaflet（地図ライブラリ）CDN -->
@@ -198,6 +198,13 @@
       font-size: 11px;
       color: #555;
     }
+
+    .map-buttons {
+      display: flex;
+      gap: 6px;
+      margin: 6px 0;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
 <body>
@@ -231,16 +238,35 @@
           <label for="deviceModel">機種</label>
           <select id="deviceModel">
             <option value="">選択</option>
-            <option>TX800白</option>
-            <option>TX新型</option>
-            <option>TXワイド青</option>
-            <option>ケンネット</option>
-        </select>
+            <option>TX700AW</option>
+            <option>RX700AW</option>
+            <option>新型TX</option>
+            <option>新型RX</option>
+            <option>その他</option>
+          </select>
         </div>
 
         <div class="form-group">
           <label for="channel">チャンネル</label>
-          <input type="text" id="channel" placeholder="例：CH15" />
+          <select id="channel">
+            <option value="">選択</option>
+            <option>1ch</option>
+            <option>2ch</option>
+            <option>3ch</option>
+            <option>4ch</option>
+            <option>5ch</option>
+            <option>6ch</option>
+            <option>7ch</option>
+            <option>8ch</option>
+            <option>9ch</option>
+            <option>10ch</option>
+            <option>11ch</option>
+            <option>12ch</option>
+            <option>13ch</option>
+            <option>14ch</option>
+            <option>15ch</option>
+            <option>16ch</option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -278,7 +304,7 @@
             inputmode="decimal"
             min="0"
             step="1"
-            placeholder="おおよその距離"
+            placeholder="地図の距離測定で自動入力可"
           />
         </div>
 
@@ -315,10 +341,19 @@
 
     <!-- 地図 -->
     <div class="card">
-      <h2>2. マップ（タップで緯度経度を入力）</h2>
+      <h2>2. マップ（タップで緯度経度・距離測定）</h2>
+      <div class="map-buttons">
+        <button type="button" class="btn-secondary" id="btnStartMeasure">
+          距離測定（2点をタップ）
+        </button>
+        <button type="button" class="btn-secondary" id="btnClearMeasure">
+          測定クリア
+        </button>
+      </div>
       <div id="map"></div>
-      <p class="small">
+      <p id="measureInfo" class="small">
         ・地図をタップすると、その地点の緯度・経度がフォームに入ります。<br />
+        ・「距離測定（2点をタップ）」を押したあと、地図上を2回タップすると2点間の距離が「距離（m）」に自動入力されます。<br />
         ・現在地を中心に表示したい場合は、上の「現在地から取得」を使用してください。
       </p>
     </div>
@@ -356,6 +391,11 @@
     let map;
     let markers = []; // { id, marker }
     let logs = []; // ログ本体
+
+    // 距離測定用
+    let measuring = false;
+    let measurePoints = []; // [LatLng, LatLng]
+    let measureLine = null;
 
     // ===== ユーティリティ =====
     function generateId() {
@@ -403,6 +443,75 @@
       return "#1976d2";
     }
 
+    // ===== 距離測定関連 =====
+    function resetMeasure() {
+      measuring = false;
+      measurePoints = [];
+      const info = document.getElementById("measureInfo");
+      info.textContent =
+        "・地図をタップすると、その地点の緯度・経度がフォームに入ります。\n" +
+        "・「距離測定（2点をタップ）」を押したあと、地図上を2回タップすると2点間の距離が「距離（m）」に自動入力されます。\n" +
+        "・現在地を中心に表示したい場合は、上の「現在地から取得」を使用してください。";
+      if (measureLine) {
+        map.removeLayer(measureLine);
+        measureLine = null;
+      }
+    }
+
+    function startMeasure() {
+      measuring = true;
+      measurePoints = [];
+      if (measureLine) {
+        map.removeLayer(measureLine);
+        measureLine = null;
+      }
+      const info = document.getElementById("measureInfo");
+      info.textContent =
+        "距離測定モード：1点目を地図上でタップしてください。";
+    }
+
+    function handleMeasureClick(latlng) {
+      if (!measuring) return;
+
+      measurePoints.push(latlng);
+
+      const info = document.getElementById("measureInfo");
+
+      if (measurePoints.length === 1) {
+        info.textContent =
+          "1点目を記録しました。2点目を地図上でタップしてください。";
+      } else if (measurePoints.length === 2) {
+        const [p1, p2] = measurePoints;
+
+        // 2点間距離（メートル）
+        const distance = map.distance(p1, p2);
+        const meters = Math.round(distance);
+
+        document.getElementById("distance").value = meters;
+        info.textContent = `測定距離：約 ${meters} m（2点間）`;
+
+        // 線を描画
+        if (measureLine) {
+          map.removeLayer(measureLine);
+        }
+        measureLine = L.polyline([p1, p2], {
+          color: "#000000",
+          dashArray: "4,4",
+        }).addTo(map);
+
+        measuring = false;
+      } else if (measurePoints.length > 2) {
+        // 万が一3点以上になった場合はリセットしてやり直し
+        measurePoints = [latlng];
+        if (measureLine) {
+          map.removeLayer(measureLine);
+          measureLine = null;
+        }
+        info.textContent =
+          "1点目を記録しました。2点目を地図上でタップしてください。";
+      }
+    }
+
     // ===== 地図関連 =====
     function initMap() {
       // デフォルトはローマ近辺
@@ -413,11 +522,14 @@
         attribution: "&copy; OpenStreetMap contributors",
       }).addTo(map);
 
-      // 地図クリック → 緯度経度をフォームにセット
+      // 地図クリック → 緯度経度をフォームにセット & 距離測定処理
       map.on("click", function (e) {
         const { lat, lng } = e.latlng;
         document.getElementById("lat").value = lat.toFixed(6);
         document.getElementById("lng").value = lng.toFixed(6);
+
+        // 距離測定モードの場合は測定処理
+        handleMeasureClick(e.latlng);
       });
 
       // 既存ログをマッピング
@@ -646,12 +758,10 @@
         return;
       }
       const text = JSON.stringify(logs, null, 2);
-      // シンプルにpromptで表示 → コピーしてExcelや他ツールに貼り付け
       const ok = confirm(
         "JSONテキストを表示します。コピーして別のメモ帳などに保存してください。"
       );
       if (!ok) return;
-      // 新しいタブでテキストを表示する方が長文には優しい
       const blob = new Blob([text], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank");
@@ -673,6 +783,7 @@
       loadLogs();
       initMap();
       renderLogsList();
+      resetMeasure();
 
       document
         .getElementById("btnSave")
@@ -689,6 +800,13 @@
       document
         .getElementById("btnClearAll")
         .addEventListener("click", handleClearAll);
+
+      document
+        .getElementById("btnStartMeasure")
+        .addEventListener("click", startMeasure);
+      document
+        .getElementById("btnClearMeasure")
+        .addEventListener("click", resetMeasure);
     });
   </script>
 </body>
