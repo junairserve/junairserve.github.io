@@ -108,9 +108,10 @@
       padding: 6px 8px;
     }
 
+    /* ★地図エリアを大きく（高さ420px） */
     #map {
       width: 100%;
-      height: 260px;
+      height: 420px;
       border-radius: 8px;
       overflow: hidden;
     }
@@ -181,6 +182,7 @@
     .small {
       font-size: 11px;
       color: #555;
+      white-space: pre-line;
     }
 
     .clickable {
@@ -352,9 +354,9 @@
       </div>
       <div id="map"></div>
       <p id="measureInfo" class="small">
-        ・地図をタップすると、その地点の緯度・経度がフォームに入ります。<br />
-        ・「距離測定（2点をタップ）」を押したあと、地図上を2回タップすると2点間の距離が「距離（m）」に自動入力されます。<br />
-        ・現在地を中心に表示したい場合は、上の「現在地から取得」を使用してください。
+・地図をタップすると、その地点の緯度・経度がフォームに入ります。
+・「距離測定（2点をタップ）」を押したあと、地図上を2回タップすると2点間の距離が「距離（m）」に自動入力されます。
+・現在地を中心に表示したい場合は、上の「現在地から取得」を使用してください。
       </p>
     </div>
 
@@ -373,8 +375,8 @@
       </div>
       <div class="logs-list" id="logsList"></div>
       <p class="small">
-        ・行をタップすると、その地点にマップが移動します。<br />
-        ・「JSONエクスポート」でテキストとしてコピーし、あとでExcel等に取り込み可能です。
+・行をタップすると、その地点にマップが移動します。
+・「JSONエクスポート」でテキストとしてコピーし、あとでExcel等に取り込み可能です。
       </p>
     </div>
   </div>
@@ -396,6 +398,10 @@
     let measuring = false;
     let measurePoints = []; // [LatLng, LatLng]
     let measureLine = null;
+    let measurePointMarkers = []; // 測定2点の小さいマーカー
+
+    // タップ位置表示用
+    let tapMarker = null;
 
     // ===== ユーティリティ =====
     function generateId() {
@@ -418,7 +424,6 @@
 
     function formatDateForList(value) {
       if (!value) return "";
-      // datetime-local → 表示用（YYYY-MM-DD HH:MM）
       return value.replace("T", " ").slice(0, 16);
     }
 
@@ -444,18 +449,24 @@
     }
 
     // ===== 距離測定関連 =====
+    function clearMeasurePointMarkers() {
+      measurePointMarkers.forEach(m => map.removeLayer(m));
+      measurePointMarkers = [];
+    }
+
     function resetMeasure() {
       measuring = false;
       measurePoints = [];
       const info = document.getElementById("measureInfo");
       info.textContent =
-        "・地図をタップすると、その地点の緯度・経度がフォームに入ります。\n" +
-        "・「距離測定（2点をタップ）」を押したあと、地図上を2回タップすると2点間の距離が「距離（m）」に自動入力されます。\n" +
-        "・現在地を中心に表示したい場合は、上の「現在地から取得」を使用してください。";
+"・地図をタップすると、その地点の緯度・経度がフォームに入ります。\n" +
+"・「距離測定（2点をタップ）」を押したあと、地図上を2回タップすると2点間の距離が「距離（m）」に自動入力されます。\n" +
+"・現在地を中心に表示したい場合は、上の「現在地から取得」を使用してください。";
       if (measureLine) {
         map.removeLayer(measureLine);
         measureLine = null;
       }
+      clearMeasurePointMarkers();
     }
 
     function startMeasure() {
@@ -465,32 +476,47 @@
         map.removeLayer(measureLine);
         measureLine = null;
       }
+      clearMeasurePointMarkers();
       const info = document.getElementById("measureInfo");
-      info.textContent =
-        "距離測定モード：1点目を地図上でタップしてください。";
+      info.textContent = "距離測定モード：1点目を地図上でタップしてください。";
     }
 
     function handleMeasureClick(latlng) {
       if (!measuring) return;
 
       measurePoints.push(latlng);
-
       const info = document.getElementById("measureInfo");
 
       if (measurePoints.length === 1) {
+        clearMeasurePointMarkers();
+        const m1 = L.circleMarker(latlng, {
+          radius: 5,
+          color: "#1565c0",
+          fillColor: "#bbdefb",
+          fillOpacity: 1.0,
+        }).addTo(map);
+        measurePointMarkers.push(m1);
+
         info.textContent =
           "1点目を記録しました。2点目を地図上でタップしてください。";
+
       } else if (measurePoints.length === 2) {
         const [p1, p2] = measurePoints;
 
-        // 2点間距離（メートル）
+        const m2 = L.circleMarker(p2, {
+          radius: 5,
+          color: "#c62828",
+          fillColor: "#ffcdd2",
+          fillOpacity: 1.0,
+        }).addTo(map);
+        measurePointMarkers.push(m2);
+
         const distance = map.distance(p1, p2);
         const meters = Math.round(distance);
 
         document.getElementById("distance").value = meters;
         info.textContent = `測定距離：約 ${meters} m（2点間）`;
 
-        // 線を描画
         if (measureLine) {
           map.removeLayer(measureLine);
         }
@@ -500,13 +526,23 @@
         }).addTo(map);
 
         measuring = false;
+
       } else if (measurePoints.length > 2) {
-        // 万が一3点以上になった場合はリセットしてやり直し
+        // 念のため3点目以降が入ったらリセットしてやり直し
         measurePoints = [latlng];
         if (measureLine) {
           map.removeLayer(measureLine);
           measureLine = null;
         }
+        clearMeasurePointMarkers();
+        const m1 = L.circleMarker(latlng, {
+          radius: 5,
+          color: "#1565c0",
+          fillColor: "#bbdefb",
+          fillOpacity: 1.0,
+        }).addTo(map);
+        measurePointMarkers.push(m1);
+
         info.textContent =
           "1点目を記録しました。2点目を地図上でタップしてください。";
       }
@@ -522,17 +558,28 @@
         attribution: "&copy; OpenStreetMap contributors",
       }).addTo(map);
 
-      // 地図クリック → 緯度経度をフォームにセット & 距離測定処理
+      // 地図クリック → 緯度経度をフォームにセット & タップ位置マーカー & 距離測定処理
       map.on("click", function (e) {
         const { lat, lng } = e.latlng;
+
         document.getElementById("lat").value = lat.toFixed(6);
         document.getElementById("lng").value = lng.toFixed(6);
 
-        // 距離測定モードの場合は測定処理
+        // 直近タップ位置マーカー
+        if (tapMarker) {
+          map.removeLayer(tapMarker);
+        }
+        tapMarker = L.circleMarker([lat, lng], {
+          radius: 6,
+          color: "#000000",
+          fillColor: "#ffffff",
+          fillOpacity: 1.0,
+        }).addTo(map);
+
+        // 距離測定処理
         handleMeasureClick(e.latlng);
       });
 
-      // 既存ログをマッピング
       renderMarkers();
     }
 
@@ -559,13 +606,9 @@
           <div style="font-size:12px;">
             <div><strong>${log.locationName || "無題"}</strong></div>
             <div>${formatDateForList(log.testDate)} (${log.country || ""})</div>
-            <div>機種: ${log.deviceModel || ""} / CH: ${
-          log.channel || ""
-        }</div>
+            <div>機種: ${log.deviceModel || ""} / CH: ${log.channel || ""}</div>
             <div>出力: ${log.power || ""}</div>
-            <div>結果: ${resultLabel(log.resultType)} / 距離: ${
-          log.distance || ""
-        } m</div>
+            <div>結果: ${resultLabel(log.resultType)} / 距離: ${log.distance || ""} m</div>
             <div>環境: ${log.envType || ""}</div>
             <div>メモ: ${log.note || ""}</div>
           </div>
@@ -598,7 +641,6 @@
         return;
       }
 
-      // 新しい順にソートして表示
       const sorted = [...logs].sort((a, b) => b.createdAt - a.createdAt);
 
       sorted.forEach((log) => {
@@ -611,27 +653,17 @@
 
         div.innerHTML = `
           <div class="log-item-header">
-            <span>${formatDateForList(log.testDate)} / ${
-          log.country || ""
-        }</span>
+            <span>${formatDateForList(log.testDate)} / ${log.country || ""}</span>
             <span class="${badgeClass}">${badgeLabel}</span>
           </div>
           <div>${log.locationName || "場所名なし"}</div>
           <div class="small">
-            機種: ${log.deviceModel || ""} / CH: ${
-          log.channel || ""
-        } / 出力: ${log.power || ""} / 距離: ${log.distance || ""} m
+            機種: ${log.deviceModel || ""} / CH: ${log.channel || ""} / 出力: ${log.power || ""} / 距離: ${log.distance || ""} m
           </div>
           <div class="small">
-            環境: ${log.envType || ""} / 緯度: ${
-          log.lat ? log.lat.toFixed(5) : ""
-        } / 経度: ${log.lng ? log.lng.toFixed(5) : ""}
+            環境: ${log.envType || ""} / 緯度: ${log.lat ? log.lat.toFixed(5) : ""} / 経度: ${log.lng ? log.lng.toFixed(5) : ""}
           </div>
-          ${
-            log.note
-              ? `<div class="small">メモ: ${log.note}</div>`
-              : ""
-          }
+          ${log.note ? `<div class="small">メモ: ${log.note}</div>` : ""}
         `;
         div.addEventListener("click", () => {
           flyToLog(log.id);
@@ -678,7 +710,6 @@
       const lngStr = document.getElementById("lng").value;
       const note = document.getElementById("note").value;
 
-      // 簡易バリデーション
       if (!testDate) {
         alert("日時を入力してください。");
         return;
