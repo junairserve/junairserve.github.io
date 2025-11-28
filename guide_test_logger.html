@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>ガイドレシーバー通信実験ログ（クラウド保存版）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Leaflet（地図ライブラリ） -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background-color: #f5f5f5;
+    }
+    header {
+      background: #1976d2;
+      color: white;
+      padding: 10px 16px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .container { padding: 8px 10px 80px; }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    .card h2 { font-size: 14px; margin: 0 0 4px 0; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 8px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+    }
+    .form-group label { margin-bottom: 2px; }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 4px 6px;
+      font-size: 13px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 40px;
+    }
+    .full-width { grid-column: 1 / 3; }
+
+    button {
+      padding: 8px 12px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #1976d2;
+      color: white;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .btn-secondary {
+      background: #eeeeee;
+      color: #333;
+      font-size: 12px;
+      padding: 6px 8px;
+    }
+    .btn-xs {
+      padding: 3px 6px;
+      font-size: 11px;
+      border-radius: 4px;
+    }
+
+    #map {
+      width: 100%;
+      height: 420px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .logs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .logs-header h2 { margin: 0; }
+    .logs-list {
+      max-height: 260px;
+      overflow-y: auto;
+      border-top: 1px solid #eee;
+      margin-top: 6px;
+      padding-top: 4px;
+    }
+    .log-item {
+      padding: 6px 4px;
+      border-bottom: 1px solid #eee;
+      font-size: 12px;
+    }
+    .log-item:last-child { border-bottom: none; }
+    .log-item-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+      font-weight: 600;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      color: white;
+    }
+    .badge-ok { background: #2e7d32; }
+    .badge-middle { background: #f9a825; }
+    .badge-ng { background: #c62828; }
+    .logs-actions-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 4px;
+      margin-top: 3px;
+    }
+    .small {
+      font-size: 11px;
+      color: #555;
+      white-space: pre-line;
+    }
+    .clickable { cursor: pointer; }
+    footer {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #ffffff;
+      border-top: 1px solid #ddd;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: #555;
+    }
+    .map-buttons {
+      display: flex;
+      gap: 6px;
+      margin: 6px 0;
+      flex-wrap: wrap;
+    }
+    .edit-mode-label {
+      font-size: 11px;
+      color: #d32f2f;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>ガイドレシーバー通信実験ログ（クラウド保存版）</header>
+  <div class="container">
+    <!-- 入力フォーム -->
+    <div class="card">
+      <h2>1. 実験内容を入力</h2>
+      <div id="editModeLabel" class="edit-mode-label" style="display:none;">
+        編集モード：選択した記録を上書き保存します（クリアで解除）。
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="testDate">日時</label>
+          <input type="datetime-local" id="testDate" />
+        </div>
+
+        <div class="form-group">
+          <label for="country">国</label>
+          <select id="country">
+            <option value="">選択</option>
+            <option value="Italy">イタリア</option>
+            <option value="Spain">スペイン</option>
+            <option value="Other">その他</option>
+          </select>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="locationName">場所名（例：ローマ コロッセオ付近）</label>
+          <input type="text" id="locationName" placeholder="任意のメモ用地名" />
+        </div>
+
+        <div class="form-group">
+          <label for="deviceModel">機種</label>
+          <select id="deviceModel">
+            <option value="">選択</option>
+            <option>TX800白</option>
+            <option>TX新型</option>
+            <option>TX700青</option>
+            <option>ｹﾝﾈｯﾄ</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="channel">チャンネル</label>
+          <select id="channel">
+            <option value="">選択</option>
+            <option>1ch</option><option>2ch</option><option>3ch</option><option>4ch</option>
+            <option>5ch</option><option>6ch</option><option>7ch</option><option>8ch</option>
+            <option>9ch</option><option>10ch</option><option>11ch</option><option>12ch</option>
+            <option>13ch</option><option>14ch</option><option>15ch</option><option>16ch</option>
+          </select>
+        </div>
+
+        <!-- 送信出力（機種で選択肢が変わる） -->
+        <div class="form-group">
+          <label for="power">送信出力</label>
+          <select id="power">
+            <option value="">機種を先に選択してください</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="envType">環境</label>
+          <select id="envType">
+            <option value="">選択</option>
+            <option>屋外・見通し良好</option>
+            <option>屋外・建物多い</option>
+            <option>屋内</option>
+            <option>地下・トンネル</option>
+            <option>その他</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="resultType">結果</label>
+          <select id="resultType">
+            <option value="">選択</option>
+            <option value="OK">OK（問題なし）</option>
+            <option value="PU">プツプツ・時々途切れる</option>
+            <option value="NG">NG（通信不可）</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="distance">距離（m）</label>
+          <input type="number" id="distance" min="0" step="1"
+                 placeholder="地図の距離測定で自動入力可" />
+        </div>
+
+        <div class="form-group">
+          <label for="lat">緯度</label>
+          <input type="text" id="lat" placeholder="地図タップ or 現在地取得" />
+        </div>
+
+        <div class="form-group">
+          <label for="lng">経度</label>
+          <input type="text" id="lng" placeholder="地図タップ or 現在地取得" />
+        </div>
+
+        <div class="form-group full-width">
+          <label for="note">メモ（干渉要因・障害物など）</label>
+          <textarea id="note"
+            placeholder="例：人混み多い／隣でWi-Fi AP稼働／石造りの壁が多い など"></textarea>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-top:4px;">
+        <button type="button" class="btn-secondary" id="btnGetLocation">
+          現在地から取得
+        </button>
+        <button type="button" class="btn-secondary" id="btnClearForm">
+          入力クリア
+        </button>
+      </div>
+
+      <button type="button" class="btn-primary" id="btnSave">新規登録</button>
+    </div>
+
+    <!-- 地図 -->
+    <div class="card">
+      <h2>2. マップ（タップで緯度経度・距離測定）</h2>
+      <div class="map-buttons">
+        <button type="button" class="btn-secondary" id="btnStartMeasure">
+          距離測定（2点をタップ）
+        </button>
+        <button type="button" class="btn-secondary" id="btnClearMeasure">
+          測定クリア
+        </button>
+      </div>
+      <div id="map"></div>
+      <p id="measureInfo" class="small">
+・地図をタップすると、その地点の緯度・経度がフォームに入ります。
+・「距離測定（2点をタップ）」を押したあと、地図上を2回タップすると2点間の距離が「距離（m）」に自動入力されます。
+・現在地を中心に表示したい場合は、上の「現在地から取得」を使用してください。
+      </p>
+    </div>
+
+    <!-- ログ一覧 -->
+    <div class="card">
+      <div class="logs-header">
+        <h2>3. 記録一覧（サーバー保存）</h2>
+        <div class="logs-actions">
+          <button type="button" class="btn-secondary" id="btnReload">
+            再読み込み
+          </button>
+        </div>
+      </div>
+      <div class="logs-list" id="logsList"></div>
+      <p class="small">
+・行をタップすると、その地点にマップが移動します。<br>
+・右側の「編集」「削除」ボタンでアプリ側から修正・削除できます。
+      </p>
+    </div>
+  </div>
+
+  <footer>
+    Googleスプレッドシートに保存されます（端末を変えても共有可能）。
+  </footer>
+
+  <script>
+    // ===== 設定 =====
+    const API_URL =
+      "https://script.google.com/macros/s/AKfycbxBFH3k0xOmauGeSSLybOb7qKiQ15um1QxpgUWkCwE_wVFgC3SMKZV0mxvTdTuqyYcKCw/exec";
+
+    // 機種ごとの出力設定
+    const powerOptionsByDevice = {
+      "TX800白": {
+        defaultValue: 37,
+        options: [
+          { value: 37, label: "37 (52.2mW)" },
+          { value: 36, label: "36 (35.2mW)" },
+          { value: 35, label: "35 (31.8mW)" },
+          { value: 34, label: "34 (28.8mW)" },
+        ],
+      },
+      "TX700青": {
+        defaultValue: 37,
+        options: [
+          { value: 37, label: "37 (60mW)" },
+          { value: 36, label: "36 (48mW)" },
+          { value: 35, label: "35 (38mW)" },
+          { value: 34, label: "34 (23mW)" },
+          { value: 33, label: "33 (15mW)" },
+          { value: 32, label: "32 (7.2mW)" },
+        ],
+      },
+      "TX新型": {
+        defaultValue: 4,
+        options: [
+          { value: 4, label: "4 (11.5mW)" },
+          { value: 5, label: "5 (12mW)" },
+          { value: 6, label: "6 (38mW)" },
+          { value: 7, label: "7 (58.5mW)" },
+          { value: 8, label: "8 (70.5mW)" },
+        ],
+      },
+    };
+
+    // ===== グローバル変数 =====
+    let map;
+    let markers = [];
+    let logs = [];
+    let measuring = false;
+    let measurePoints = [];
+    let measureLine = null;
+    let measurePointMarkers = [];
+    let tapMarker = null;
+
+    let editingId = null; // null: 新規, それ以外: 更新
+
+    // ユーティリティ
+    function generateId() {
+      return "log_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    }
+
+    function formatDateForList(value) {
+      if (!value) return "";
+      if (typeof value === "string" && value.includes("T")) {
+        return value.replace("T", " ").slice(0, 16);
+      }
+      return value;
+    }
+
+    function resultBadgeClass(resultType) {
+      if (resultType === "OK") return "badge badge-ok";
+      if (resultType === "PU") return "badge badge-middle";
+      if (resultType === "NG") return "badge badge-ng";
+      return "badge";
+    }
+
+    function resultLabel(resultType) {
+      if (resultType === "OK") return "OK";
+      if (resultType === "PU") return "プツプツ";
+      if (resultType === "NG") return "NG";
+      return "";
+    }
+
+    function resultColor(resultType) {
+      if (resultType === "OK") return "#2e7d32";
+      if (resultType === "PU") return "#f9a825";
+      if (resultType === "NG") return "#c62828";
+      return "#1976d2";
+    }
+
+    // 機種ごと出力候補
+    function updatePowerOptionsForDevice(deviceName) {
+      const powerSelect = document.getElementById("power");
+      powerSelect.innerHTML = "";
+
+      const config = powerOptionsByDevice[deviceName];
+
+      if (!deviceName) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "機種を先に選択してください";
+        powerSelect.appendChild(opt);
+        powerSelect.disabled = true;
+        return;
+      }
+
+      if (!config) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "出力候補なし（シートに直接記録されます）";
+        powerSelect.appendChild(opt);
+        powerSelect.disabled = false;
+        return;
+      }
+
+      config.options.forEach((o) => {
+        const opt = document.createElement("option");
+        opt.value = String(o.value);
+        opt.textContent = o.label;
+        powerSelect.appendChild(opt);
+      });
+
+      powerSelect.disabled = false;
+      powerSelect.value = String(config.defaultValue);
+    }
+
+    function getPowerLabel(deviceName, valueStr) {
+      const config = powerOptionsByDevice[deviceName];
+      if (!config) return valueStr;
+      const entry = config.options.find(
+        (o) => String(o.value) === String(valueStr)
+      );
+      return entry ? entry.label : valueStr;
+    }
+
+    // ===== サーバー通信 =====
+    async function fetchLogsFromServer() {
+      try {
+        const res = await fetch(API_URL);
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error("GET応答がJSONではありません: " + text.slice(0, 80));
+        }
+
+        logs = Array.isArray(data) ? data : [];
+        renderLogsList();
+        renderMarkers();
+      } catch (e) {
+        console.error(e);
+        alert("読み込みエラー: " + e.message);
+      }
+    }
+
+    async function saveLogToServer(log, isUpdate) {
+      const payload = {
+        action: isUpdate ? "update" : "create",
+        record: log,
+      };
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        // CORS対策：Content-Type を明示しない
+        body: JSON.stringify(payload),
+      });
+
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error("JSONとして解釈できない応答です: " + text.slice(0, 80));
+      }
+
+      if (!data || data.status !== "ok") {
+        throw new Error(data && data.message ? data.message : "サーバー側エラー");
+      }
+      return data;
+    }
+
+    async function deleteLogOnServer(id) {
+      const payload = { action: "delete", id };
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error("JSONとして解釈できない応答です: " + text.slice(0, 80));
+      }
+
+      if (!data || data.status !== "ok") {
+        throw new Error(data && data.message ? data.message : "サーバー側エラー");
+      }
+      return data;
+    }
+
+    // ===== 距離測定関連 =====
+    function clearMeasurePointMarkers() {
+      measurePointMarkers.forEach((m) => map.removeLayer(m));
+      measurePointMarkers = [];
+    }
+
+    function resetMeasure() {
+      measuring = false;
+      measurePoints = [];
+      const info = document.getElementById("measureInfo");
+      info.textContent =
+        "・地図をタップすると、その地点の緯度・経度がフォームに入ります。\n" +
+        "・「距離測定（2点をタップ）」を押したあと、地図上を2回タップすると2点間の距離が「距離（m）」に自動入力されます。\n" +
+        "・現在地を中心に表示したい場合は、上の「現在地から取得」を使用してください。";
+      if (measureLine) {
+        map.removeLayer(measureLine);
+        measureLine = null;
+      }
+      clearMeasurePointMarkers();
+    }
+
+    function startMeasure() {
+      measuring = true;
+      measurePoints = [];
+      if (measureLine) {
+        map.removeLayer(measureLine);
+        measureLine = null;
+      }
+      clearMeasurePointMarkers();
+      const info = document.getElementById("measureInfo");
+      info.textContent = "距離測定モード：1点目を地図上でタップしてください。";
+    }
+
+    function handleMeasureClick(latlng) {
+      if (!measuring) return;
+
+      measurePoints.push(latlng);
+      const info = document.getElementById("measureInfo");
+
+      if (measurePoints.length === 1) {
+        clearMeasurePointMarkers();
+        const m1 = L.circleMarker(latlng, {
+          radius: 5,
+          color: "#1565c0",
+          fillColor: "#bbdefb",
+          fillOpacity: 1.0,
+        }).addTo(map);
+        measurePointMarkers.push(m1);
+
+        info.textContent =
+          "1点目を記録しました。2点目を地図上でタップしてください。";
+      } else if (measurePoints.length === 2) {
+        const [p1, p2] = measurePoints;
+
+        const m2 = L.circleMarker(p2, {
+          radius: 5,
+          color: "#c62828",
+          fillColor: "#ffcdd2",
+          fillOpacity: 1.0,
+        }).addTo(map);
+        measurePointMarkers.push(m2);
+
+        const distance = map.distance(p1, p2);
+        const meters = Math.round(distance);
+
+        document.getElementById("distance").value = meters;
+        info.textContent = `測定距離：約 ${meters} m（2点間）`;
+
+        if (measureLine) {
+          map.removeLayer(measureLine);
+        }
+        measureLine = L.polyline([p1, p2], {
+          color: "#000000",
+          dashArray: "4,4",
+        }).addTo(map);
+
+        measuring = false;
+      } else if (measurePoints.length > 2) {
+        measurePoints = [latlng];
+        if (measureLine) {
+          map.removeLayer(measureLine);
+          measureLine = null;
+        }
+        clearMeasurePointMarkers();
+        const m1 = L.circleMarker(latlng, {
+          radius: 5,
+          color: "#1565c0",
+          fillColor: "#bbdefb",
+          fillOpacity: 1.0,
+        }).addTo(map);
+        measurePointMarkers.push(m1);
+
+        info.textContent =
+          "1点目を記録しました。2点目を地図上でタップしてください。";
+      }
+    }
+
+    // ===== 地図関連 =====
+    function initMap() {
+      map = L.map("map").setView([41.9028, 12.4964], 5); // ローマ付近
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
+
+      map.on("click", function (e) {
+        const { lat, lng } = e.latlng;
+
+        document.getElementById("lat").value = lat.toFixed(6);
+        document.getElementById("lng").value = lng.toFixed(6);
+
+        if (tapMarker) {
+          map.removeLayer(tapMarker);
+        }
+        tapMarker = L.circleMarker([lat, lng], {
+          radius: 6,
+          color: "#000000",
+          fillColor: "#ffffff",
+          fillOpacity: 1.0,
+        }).addTo(map);
+
+        handleMeasureClick(e.latlng);
+      });
+
+      renderMarkers();
+    }
+
+    function clearMarkers() {
+      markers.forEach((m) => map.removeLayer(m.marker));
+      markers = [];
+    }
+
+    function renderMarkers() {
+      if (!map) return;
+      clearMarkers();
+      logs.forEach((log) => {
+        if (!log.lat || !log.lng) return;
+        const color = resultColor(log.resultType);
+        const marker = L.circleMarker([log.lat, log.lng], {
+          radius: 8,
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.8,
+        }).addTo(map);
+
+        const popupHtml = `
+          <div style="font-size:12px;">
+            <div><strong>${log.locationName || "無題"}</strong></div>
+            <div>${formatDateForList(log.testDate)} (${log.country || ""})</div>
+            <div>機種: ${log.deviceModel || ""} / CH: ${log.channel || ""}</div>
+            <div>出力: ${log.power || ""}</div>
+            <div>結果: ${resultLabel(log.resultType)} / 距離: ${
+          log.distance || ""
+        } m</div>
+            <div>環境: ${log.envType || ""}</div>
+            <div>メモ: ${log.note || ""}</div>
+          </div>
+        `;
+        marker.bindPopup(popupHtml);
+
+        markers.push({ id: log.id, marker });
+      });
+    }
+
+    function flyToLog(logId) {
+      const target = logs.find((l) => l.id === logId);
+      if (!target || !target.lat || !target.lng) return;
+      map.flyTo([target.lat, target.lng], 17, { duration: 0.5 });
+
+      const m = markers.find((m) => m.id === logId);
+      if (m) m.marker.openPopup();
+    }
+
+    // ===== フォーム関連 =====
+    function setDefaultDate() {
+      const now = new Date();
+      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+      document.getElementById("testDate").value =
+        local.toISOString().slice(0, 16);
+    }
+
+    function enterEditMode(log) {
+      editingId = log.id;
+      document.getElementById("editModeLabel").style.display = "block";
+      document.getElementById("btnSave").textContent = "更新保存";
+
+      document.getElementById("testDate").value = log.testDate || "";
+      document.getElementById("country").value = log.country || "";
+      document.getElementById("locationName").value = log.locationName || "";
+      document.getElementById("deviceModel").value = log.deviceModel || "";
+      updatePowerOptionsForDevice(log.deviceModel || "");
+      // power（ラベル一致で選択）
+      if (log.power) {
+        const powerSelect = document.getElementById("power");
+        const opts = Array.from(powerSelect.options);
+        const found = opts.find((o) => o.textContent === log.power);
+        if (found) powerSelect.value = found.value;
+      }
+      document.getElementById("channel").value = log.channel || "";
+      document.getElementById("envType").value = log.envType || "";
+      document.getElementById("resultType").value = log.resultType || "";
+      document.getElementById("distance").value =
+        log.distance !== null && log.distance !== undefined ? log.distance : "";
+      document.getElementById("lat").value =
+        log.lat !== null && log.lat !== undefined ? log.lat : "";
+      document.getElementById("lng").value =
+        log.lng !== null && log.lng !== undefined ? log.lng : "";
+      document.getElementById("note").value = log.note || "";
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function clearForm() {
+      editingId = null;
+      document.getElementById("editModeLabel").style.display = "none";
+      document.getElementById("btnSave").textContent = "新規登録";
+
+      setDefaultDate();
+      document.getElementById("country").value = "";
+      document.getElementById("locationName").value = "";
+      document.getElementById("deviceModel").value = "";
+      document.getElementById("channel").value = "";
+      document.getElementById("envType").value = "";
+      document.getElementById("resultType").value = "";
+      document.getElementById("distance").value = "";
+      document.getElementById("lat").value = "";
+      document.getElementById("lng").value = "";
+      document.getElementById("note").value = "";
+      document.getElementById("power").innerHTML =
+        '<option value="">機種を先に選択してください</option>';
+      document.getElementById("power").disabled = true;
+    }
+
+    async function handleSave() {
+      const testDate = document.getElementById("testDate").value;
+      const country = document.getElementById("country").value;
+      const locationName = document.getElementById("locationName").value;
+      const deviceModel = document.getElementById("deviceModel").value;
+      const channel = document.getElementById("channel").value;
+      const envType = document.getElementById("envType").value;
+      const resultType = document.getElementById("resultType").value;
+      const distance = document.getElementById("distance").value;
+      const latStr = document.getElementById("lat").value;
+      const lngStr = document.getElementById("lng").value;
+      const note = document.getElementById("note").value;
+      const powerSelect = document.getElementById("power");
+      const powerValue = powerSelect.value;
+
+      if (!testDate) { alert("日時を入力してください。"); return; }
+      if (!country) { alert("国を選択してください。"); return; }
+      if (!deviceModel) { alert("機種を選択してください。"); return; }
+      if (!resultType) { alert("結果を選択してください。"); return; }
+      if (!latStr || !lngStr) {
+        alert("緯度・経度が未入力です。地図をタップするか、現在地取得を行ってください。");
+        return;
+      }
+      if (powerOptionsByDevice[deviceModel] && !powerValue) {
+        alert("送信出力を選択してください。");
+        return;
+      }
+
+      const lat = parseFloat(latStr);
+      const lng = parseFloat(lngStr);
+      if (Number.isNaN(lat) || Number.isNaN(lng)) {
+        alert("緯度・経度の形式が正しくありません。");
+        return;
+      }
+
+      let power = "";
+      if (powerValue) {
+        power = getPowerLabel(deviceModel, powerValue);
+      }
+
+      const isUpdate = !!editingId;
+      const id = isUpdate ? editingId : generateId();
+
+      const log = {
+        id,
+        testDate,
+        country,
+        locationName,
+        deviceModel,
+        channel,
+        power,
+        envType,
+        resultType,
+        distance: distance ? Number(distance) : null,
+        lat,
+        lng,
+        note,
+        createdAt: Date.now(),
+      };
+
+      try {
+        await saveLogToServer(log, isUpdate);
+
+        if (isUpdate) {
+          const idx = logs.findIndex((l) => l.id === id);
+          if (idx !== -1) {
+            logs[idx] = log;
+          }
+          alert("記録を更新しました。");
+        } else {
+          logs.push(log);
+          alert("サーバーに記録しました。");
+        }
+
+        renderLogsList();
+        renderMarkers();
+        clearForm();
+      } catch (e) {
+        console.error(e);
+        alert("保存エラー: " + e.message);
+      }
+    }
+
+    async function handleDelete(id) {
+      if (!confirm("この記録を削除しますか？")) return;
+
+      try {
+        await deleteLogOnServer(id);
+        logs = logs.filter((l) => l.id !== id);
+        renderLogsList();
+        renderMarkers();
+
+        if (editingId === id) {
+          clearForm();
+        }
+
+        alert("削除しました。");
+      } catch (e) {
+        console.error(e);
+        alert("削除エラー: " + e.message);
+      }
+    }
+
+    // ===== ログ一覧描画 =====
+    function renderLogsList() {
+      const container = document.getElementById("logsList");
+      container.innerHTML = "";
+
+      if (!logs || logs.length === 0) {
+        container.innerHTML =
+          '<div class="small">まだ記録がありません。</div>';
+        return;
+      }
+
+      const sorted = [...logs].sort(
+        (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
+      );
+
+      sorted.forEach((log) => {
+        const div = document.createElement("div");
+        div.className = "log-item clickable";
+        div.dataset.id = log.id;
+
+        const badgeClass = resultBadgeClass(log.resultType);
+        const badgeLabel = resultLabel(log.resultType);
+
+        div.innerHTML = `
+          <div class="log-item-header">
+            <span>${formatDateForList(log.testDate)} / ${
+          log.country || ""
+        }</span>
+            <span class="${badgeClass}">${badgeLabel}</span>
+          </div>
+          <div>${log.locationName || "場所名なし"}</div>
+          <div class="small">
+            機種: ${log.deviceModel || ""} / CH: ${log.channel || ""} / 出力: ${
+          log.power || ""
+        } / 距離: ${log.distance || ""} m
+          </div>
+          <div class="small">
+            環境: ${log.envType || ""} / 緯度: ${
+          log.lat ? Number(log.lat).toFixed(5) : ""
+        } / 経度: ${log.lng ? Number(log.lng).toFixed(5) : ""}
+          </div>
+          ${log.note ? `<div class="small">メモ: ${log.note}</div>` : ""}
+          <div class="logs-actions-row">
+            <button type="button" class="btn-secondary btn-xs btn-edit">編集</button>
+            <button type="button" class="btn-secondary btn-xs btn-delete">削除</button>
+          </div>
+        `;
+
+        // 行全体クリックで地図ジャンプ
+        div.addEventListener("click", () => {
+          flyToLog(log.id);
+        });
+
+        // 編集ボタン
+        const btnEdit = div.querySelector(".btn-edit");
+        btnEdit.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          enterEditMode(log);
+        });
+
+        // 削除ボタン
+        const btnDelete = div.querySelector(".btn-delete");
+        btnDelete.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          handleDelete(log.id);
+        });
+
+        container.appendChild(div);
+      });
+    }
+
+    // ===== 現在地取得 =====
+    function handleGetLocation() {
+      if (!navigator.geolocation) {
+        alert("このブラウザでは現在地取得がサポートされていません。");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          document.getElementById("lat").value = latitude.toFixed(6);
+          document.getElementById("lng").value = longitude.toFixed(6);
+          map.setView([latitude, longitude], 17);
+        },
+        (err) => {
+          console.error(err);
+          alert("現在地を取得できませんでした。位置情報の許可設定をご確認ください。");
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    // ===== 初期化 =====
+    window.addEventListener("DOMContentLoaded", async () => {
+      setDefaultDate();
+      initMap();
+      resetMeasure();
+
+      document
+        .getElementById("deviceModel")
+        .addEventListener("change", (e) => {
+          updatePowerOptionsForDevice(e.target.value);
+        });
+
+      document
+        .getElementById("btnSave")
+        .addEventListener("click", handleSave);
+      document
+        .getElementById("btnGetLocation")
+        .addEventListener("click", handleGetLocation);
+      document
+        .getElementById("btnClearForm")
+        .addEventListener("click", clearForm);
+      document
+        .getElementById("btnStartMeasure")
+        .addEventListener("click", startMeasure);
+      document
+        .getElementById("btnClearMeasure")
+        .addEventListener("click", resetMeasure);
+      document
+        .getElementById("btnReload")
+        .addEventListener("click", fetchLogsFromServer);
+
+      updatePowerOptionsForDevice("");
+      await fetchLogsFromServer();
+    });
+  </script>
+</body>
+</html>
