@@ -281,9 +281,8 @@
           <select id="envType">
             <option value="">選択</option>
             <option>屋外・見通し良好</option>
-            <option>屋外・建物多い</option>
-            <option>屋内</option>
-            <option>地下・トンネル</option>
+            <option>屋外・遮蔽あり（建物/人）</option>
+            <option>屋内（美術館など）</option>
             <option>その他</option>
           </select>
         </div>
@@ -293,7 +292,8 @@
           <select id="resultType">
             <option value="">選択</option>
             <option value="OK">OK（問題なし）</option>
-            <option value="PU">プツプツ・時々途切れる</option>
+            <option value="PU">多少途切れるがOK</option>
+            <option value="PU">途切れが多い</option>
             <option value="NG">NG（通信不可）</option>
           </select>
         </div>
@@ -842,4 +842,5 @@
   </script>
 </body>
 </html>
+
 
