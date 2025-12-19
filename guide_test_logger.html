@@ -229,6 +229,8 @@
             <option>TX新型</option>
             <option>TX700青</option>
             <option>ｹﾝﾈｯﾄ</option>
+            <option>TX新型2回送り</option>
+            <option>TX新型出力変更</option>
           </select>
         </div>
 
@@ -386,6 +388,27 @@
           { value: 8, label: "8 (70.5mW)" },
         ],
       },
+       "TX新型2回送り": {
+        defaultValue: 4,
+        options: [
+          { value: 4, label: "4 (11.5mW)" },
+          { value: 5, label: "5 (12mW)" },
+          { value: 6, label: "6 (38mW)" },
+          { value: 7, label: "7 (58.5mW)" },
+          { value: 8, label: "8 (70.5mW)" },
+        ],
+      },  
+　　　 "TX新型出力変更": {
+        defaultValue: 4,
+        options:[
+          { value: 2, label: "2 (11.5mW)" },
+          { value: 3, label: "3 (12mW)" },
+          { value: 4, label: "4 (25mW)" },
+          { value: 5, label: "5 (35mW)" },
+          { value: 6, label: "6 (40mW)" },
+          { value: 7, label: "7 (50mW)" },
+          { value: 8, label: "8 (60mW)" },
+       ],         
     };
 
     // ===== グローバル変数 =====
@@ -1015,5 +1038,6 @@
   </script>
 </body>
 </html>
+
 
 
